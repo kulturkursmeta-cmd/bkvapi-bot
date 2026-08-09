@@ -1,4 +1,48 @@
 {
   "sonSat": 0,
-  "sonAl": 1786261499999
+  "sonAl": 1786261499999,
+  "BTCUSDT": {
+    "sonSat": 0,
+    "sonAl": 0
+  },
+  "ETHUSDT": {
+    "sonSat": 0,
+    "sonAl": 0
+  },
+  "SOLUSDT": {
+    "sonSat": 0,
+    "sonAl": 1786264379999
+  },
+  "BNBUSDT": {
+    "sonSat": 0,
+    "sonAl": 1786263959999
+  },
+  "XRPUSDT": {
+    "sonSat": 0,
+    "sonAl": 0
+  },
+  "DOGEUSDT": {
+    "sonSat": 0,
+    "sonAl": 1786264259999
+  },
+  "ADAUSDT": {
+    "sonSat": 0,
+    "sonAl": 1786264259999
+  },
+  "AVAXUSDT": {
+    "sonSat": 0,
+    "sonAl": 0
+  },
+  "LINKUSDT": {
+    "sonSat": 0,
+    "sonAl": 1786264379999
+  },
+  "SUIUSDT": {
+    "sonSat": 0,
+    "sonAl": 1786264499999
+  },
+  "TRXUSDT": {
+    "sonSat": 0,
+    "sonAl": 1786263419999
+  }
 }
