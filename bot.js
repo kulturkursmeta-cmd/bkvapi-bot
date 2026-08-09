@@ -62,14 +62,40 @@ function bkvapiHesapla(closes) {
 }
 
 // ---- VERI CEKME ----
+// Binance bazi ulkelerden (orn. GitHub sunuculari) 451 dondurur.
+// Bu yuzden birden fazla adresi sirayla deniyoruz.
+const VERI_ADRESLERI = [
+  'https://data-api.binance.vision/api/v3/klines',
+  'https://api.binance.com/api/v3/klines',
+  'https://api1.binance.com/api/v3/klines',
+];
+
 async function mumlariGetir() {
-  const url = `https://api.binance.com/api/v3/klines?symbol=${SEMBOL}&interval=${PERIYOT}&limit=500`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Binance hatasi: ${res.status} ${await res.text()}`);
-  const data = await res.json();
-  // Son mum henuz kapanmadi -> at
-  const kapanmis = data.slice(0, -1);
-  return kapanmis.map((k) => ({ kapanisZamani: k[6], kapanis: parseFloat(k[4]) }));
+  const hatalar = [];
+
+  for (const temel of VERI_ADRESLERI) {
+    const url = `${temel}?symbol=${SEMBOL}&interval=${PERIYOT}&limit=500`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        hatalar.push(`${temel} -> ${res.status}`);
+        continue;
+      }
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        hatalar.push(`${temel} -> bos cevap`);
+        continue;
+      }
+      console.log(`Veri kaynagi: ${temel}`);
+      // Son mum henuz kapanmadi -> at
+      const kapanmis = data.slice(0, -1);
+      return kapanmis.map((k) => ({ kapanisZamani: k[6], kapanis: parseFloat(k[4]) }));
+    } catch (e) {
+      hatalar.push(`${temel} -> ${e.message}`);
+    }
+  }
+
+  throw new Error(`Hicbir veri kaynagina ulasilamadi. Denenenler: ${hatalar.join(' | ')}`);
 }
 
 // ---- DURUM ----
