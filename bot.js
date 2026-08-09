@@ -1,4 +1,4 @@
-// BK-VAPI sinyal botu
+// BK-VAPI sinyal botu (coklu sembol)
 // Binance'den mum verisi ceker, BK-VAPI gostergesini hesaplar,
 // AL/SAT sinyali bulursa Telegram'dan bildirim gonderir.
 
@@ -9,7 +9,10 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ---- AYARLAR ----
-const SEMBOL = process.env.SEMBOL || 'BTCUSDT';
+const SEMBOLLER = (process.env.SEMBOLLER ||
+  'BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,DOGEUSDT,ADAUSDT,AVAXUSDT,LINKUSDT,SUIUSDT,TRXUSDT'
+).split(',').map((s) => s.trim()).filter(Boolean);
+
 const PERIYOT = process.env.PERIYOT || '1m';   // 1m, 5m, 15m, 1h, 4h, 1d
 const THRESHOLD = 35;
 const GERIYE_BAK = 30;   // son kac kapanmis mumda sinyal aransin
@@ -70,11 +73,11 @@ const VERI_ADRESLERI = [
   'https://api1.binance.com/api/v3/klines',
 ];
 
-async function mumlariGetir() {
+async function mumlariGetir(sembol) {
   const hatalar = [];
 
   for (const temel of VERI_ADRESLERI) {
-    const url = `${temel}?symbol=${SEMBOL}&interval=${PERIYOT}&limit=500`;
+    const url = `${temel}?symbol=${sembol}&interval=${PERIYOT}&limit=500`;
     try {
       const res = await fetch(url);
       if (!res.ok) {
@@ -86,7 +89,6 @@ async function mumlariGetir() {
         hatalar.push(`${temel} -> bos cevap`);
         continue;
       }
-      console.log(`Veri kaynagi: ${temel}`);
       // Son mum henuz kapanmadi -> at
       const kapanmis = data.slice(0, -1);
       return kapanmis.map((k) => ({ kapanisZamani: k[6], kapanis: parseFloat(k[4]) }));
@@ -95,7 +97,7 @@ async function mumlariGetir() {
     }
   }
 
-  throw new Error(`Hicbir veri kaynagina ulasilamadi. Denenenler: ${hatalar.join(' | ')}`);
+  throw new Error(`${sembol}: veri alinamadi. ${hatalar.join(' | ')}`);
 }
 
 // ---- DURUM ----
@@ -103,7 +105,7 @@ function durumOku() {
   try {
     return JSON.parse(fs.readFileSync(DURUM_DOSYASI, 'utf8'));
   } catch {
-    return { sonSat: 0, sonAl: 0 };
+    return {};
   }
 }
 
@@ -124,21 +126,24 @@ async function telegramGonder(mesaj) {
     body: JSON.stringify({ chat_id: CHAT_ID, text: mesaj }),
   });
   if (!res.ok) throw new Error(`Telegram hatasi: ${res.status} ${await res.text()}`);
-  console.log('Telegram mesaji gonderildi.');
 }
 
 function zamanYaz(ms) {
   return new Date(ms).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
 }
 
-// ---- ANA AKIS ----
-async function main() {
-  const mumlar = await mumlariGetir();
+// ---- TEK SEMBOL KONTROLU ----
+async function sembolKontrol(sembol, durum) {
+  const mumlar = await mumlariGetir(sembol);
   const closes = mumlar.map((m) => m.kapanis);
   const { kirmizi, sari } = bkvapiHesapla(closes);
 
-  const durum = durumOku();
-  const yeniDurum = { ...durum };
+  // Bu sembol ilk kez taraniyorsa gecmis sinyalleri toplu gonderme.
+  // Sadece mevcut durumu kaydet, bundan sonrakileri bildir.
+  const ilkKez = !durum[sembol];
+
+  const onceki = durum[sembol] || { sonSat: 0, sonAl: 0 };
+  const yeni = { ...onceki };
   const bildirimler = [];
 
   const basla = Math.max(1, mumlar.length - GERIYE_BAK);
@@ -150,37 +155,69 @@ async function main() {
     // AL: kirmizi cizgi 0 altindayken sarinin ustune cikti
     const al = kirmizi[i - 1] <= sari[i - 1] && kirmizi[i] > sari[i] && kirmizi[i] < 0;
 
-    if (sat && zaman > (durum.sonSat || 0)) {
+    if (sat && zaman > (onceki.sonSat || 0)) {
       bildirimler.push(
-        `🔻 BK-VAPI SAT sinyali\n${SEMBOL} · ${PERIYOT}\n${zamanYaz(zaman)}\n` +
+        `🔻 BK-VAPI SAT sinyali\n${sembol} · ${PERIYOT}\n${zamanYaz(zaman)}\n` +
         `Sari cizgi 35 ustundeyken kirmizinin altina indi.\n` +
         `R: ${kirmizi[i].toFixed(2)} | R(EMA): ${sari[i].toFixed(2)} | Fiyat: ${closes[i]}`
       );
-      yeniDurum.sonSat = zaman;
+      yeni.sonSat = zaman;
     }
 
-    if (al && zaman > (durum.sonAl || 0)) {
+    if (al && zaman > (onceki.sonAl || 0)) {
       bildirimler.push(
-        `🔺 BK-VAPI AL sinyali\n${SEMBOL} · ${PERIYOT}\n${zamanYaz(zaman)}\n` +
+        `🔺 BK-VAPI AL sinyali\n${sembol} · ${PERIYOT}\n${zamanYaz(zaman)}\n` +
         `Kirmizi cizgi 0 altindayken sarinin ustune cikti.\n` +
         `R: ${kirmizi[i].toFixed(2)} | R(EMA): ${sari[i].toFixed(2)} | Fiyat: ${closes[i]}`
       );
-      yeniDurum.sonAl = zaman;
+      yeni.sonAl = zaman;
     }
   }
 
   const son = mumlar.length - 1;
-  console.log(
-    `${SEMBOL} ${PERIYOT} | Fiyat: ${closes[son]} | ` +
-    `R: ${kirmizi[son].toFixed(2)} | R(EMA): ${sari[son].toFixed(2)} | ` +
-    `Yeni sinyal: ${bildirimler.length}`
-  );
+  // Ilk taramada bildirim gonderme, sadece durumu kaydet
+  const gonderilecek = ilkKez ? [] : bildirimler;
+  return {
+    yeni,
+    bildirimler: gonderilecek,
+    ozet: `${sembol.padEnd(10)} fiyat: ${String(closes[son]).padEnd(12)} ` +
+          `R: ${kirmizi[son].toFixed(2).padStart(7)} | R(EMA): ${sari[son].toFixed(2).padStart(7)} | ` +
+          `sinyal: ${gonderilecek.length}${ilkKez ? ' (ilk tarama, bildirim yok)' : ''}`,
+  };
+}
 
-  for (const mesaj of bildirimler) {
+// ---- ANA AKIS ----
+async function main() {
+  const durum = durumOku();
+  const yeniDurum = { ...durum };
+  const tumBildirimler = [];
+  const hatalar = [];
+
+  for (const sembol of SEMBOLLER) {
+    try {
+      const sonuc = await sembolKontrol(sembol, durum);
+      yeniDurum[sembol] = sonuc.yeni;
+      tumBildirimler.push(...sonuc.bildirimler);
+      console.log(sonuc.ozet);
+    } catch (e) {
+      // Bir sembol hata verirse digerleri devam etsin
+      hatalar.push(e.message);
+      console.error(`[ATLANDI] ${e.message}`);
+    }
+  }
+
+  for (const mesaj of tumBildirimler) {
     await telegramGonder(mesaj);
   }
 
+  console.log(`\nToplam ${SEMBOLLER.length} sembol tarandi, ${tumBildirimler.length} yeni sinyal gonderildi.`);
+
   durumYaz(yeniDurum);
+
+  // Tum semboller hata verdiyse is basarisiz sayilsin
+  if (hatalar.length === SEMBOLLER.length) {
+    throw new Error('Hicbir sembol icin veri alinamadi.');
+  }
 }
 
 main().catch((err) => {
