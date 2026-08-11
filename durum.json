@@ -15,7 +15,7 @@
   },
   "BNBUSDT": {
     "sonSat": 1786479779999,
-    "sonAl": 1786470179999
+    "sonAl": 1786485479999
   },
   "XRPUSDT": {
     "sonSat": 1786470479999,
@@ -27,7 +27,7 @@
   },
   "ADAUSDT": {
     "sonSat": 0,
-    "sonAl": 1786471259999
+    "sonAl": 1786486679999
   },
   "AVAXUSDT": {
     "sonSat": 1786290719999,
@@ -35,14 +35,14 @@
   },
   "LINKUSDT": {
     "sonSat": 0,
-    "sonAl": 1786420919999
+    "sonAl": 1786486679999
   },
   "SUIUSDT": {
-    "sonSat": 0,
+    "sonSat": 1786486379999,
     "sonAl": 1786459139999
   },
   "TRXUSDT": {
     "sonSat": 0,
-    "sonAl": 1786479599999
+    "sonAl": 1786486979999
   }
 }
