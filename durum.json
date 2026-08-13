@@ -7,23 +7,23 @@
   },
   "ETHUSDT": {
     "sonSat": 1786478699999,
-    "sonAl": 1786635359999
+    "sonAl": 1786654739999
   },
   "SOLUSDT": {
     "sonSat": 1786311959999,
-    "sonAl": 1786634579999
+    "sonAl": 1786654739999
   },
   "BNBUSDT": {
     "sonSat": 1786479779999,
-    "sonAl": 1786646039999
+    "sonAl": 1786655039999
   },
   "XRPUSDT": {
     "sonSat": 1786470479999,
-    "sonAl": 1786646279999
+    "sonAl": 1786655939999
   },
   "DOGEUSDT": {
     "sonSat": 0,
-    "sonAl": 1786644839999
+    "sonAl": 1786655039999
   },
   "ADAUSDT": {
     "sonSat": 0,
@@ -31,7 +31,7 @@
   },
   "AVAXUSDT": {
     "sonSat": 1786290719999,
-    "sonAl": 1786621619999
+    "sonAl": 1786656299999
   },
   "LINKUSDT": {
     "sonSat": 0,
@@ -43,6 +43,6 @@
   },
   "TRXUSDT": {
     "sonSat": 0,
-    "sonAl": 1786645859999
+    "sonAl": 1786656359999
   }
 }
